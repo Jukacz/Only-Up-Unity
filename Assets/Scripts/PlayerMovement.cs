@@ -2,7 +2,9 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using System.Xml;
 using System.Xml.Serialization;
+using Unity.VisualScripting;
 using UnityEditor.ShaderGraph.Internal;
 using UnityEditor.ShaderKeywordFilter;
 using UnityEditor.UI;
@@ -19,29 +21,27 @@ public class PlayerMovement : MonoBehaviour
     public Rigidbody rb;
     public Animator anim;
 
+    public GameObject Legs;
+
+
     // get collider
 
     public Collider coll;
-
-
-    private readonly int sprintSpeed = 10;
-    private readonly int speed = 3;
-
+    [SerializeField] private int speed = 1000;
 
     private float previousZ = 0;
     private float previousX = 0;
+
+    private float acceleration = 0;
 
 
     void Start()
     {
         rb = GetComponent<Rigidbody>();
-        coll = GetComponent<Collider>();
+        coll = GetComponent<Collider>();    
         anim = GetComponent<Animator>();
         Cursor.lockState = CursorLockMode.Locked;
-
-
     }
-
     private bool IsGoingForward()
     {
         return (Input.GetKey(KeyCode.W)) || (Input.GetKey(KeyCode.UpArrow));
@@ -60,24 +60,6 @@ public class PlayerMovement : MonoBehaviour
     private bool isGoingRight()
     {
            return (Input.GetKey(KeyCode.D)) || (Input.GetKey(KeyCode.RightArrow));
-    }
-
-    // Update is called once per frame
-
-    private void OnCollisionEnter(Collision collision)
-    {
-        if (collision.gameObject.CompareTag("Ground"))
-        {
-            this.canJump = true;
-        }
-    }
-
-    private void OnCollisionExit(Collision collision)
-    {
-        if (collision.gameObject.CompareTag("Ground"))
-        {
-            this.canJump = false;
-        }
     }
 
     private void Sprint()
@@ -108,16 +90,27 @@ public class PlayerMovement : MonoBehaviour
 
         if (is_going_forward)
         {
-            transform.Translate((isSprinting ? this.sprintSpeed : this.speed) * Time.deltaTime * Vector3.forward);
+            if (!isSprinting)
+            {
+                rb.AddForce(transform.forward * this.speed);
+            }
+            else
+            {
+                float speed = this.speed * 1.5f;
+                rb.AddForce(transform.forward * speed);
+            }
             anim.SetFloat("SpeedOfWalking", this.sprinting ? 2 : 1);
+
+
         }
+        Debug.Log(acceleration);
     }
 
     private void GoBackwards()
     {
         if ((Input.GetKey(KeyCode.S)) || (Input.GetKey(KeyCode.DownArrow)))
         {
-            transform.Translate(speed * Time.deltaTime * Vector3.back);
+            rb.AddForce(-transform.forward * this.speed);
             anim.SetFloat("SpeedOfWalking", -1);
         }
     }
@@ -126,7 +119,7 @@ public class PlayerMovement : MonoBehaviour
     {
         if ((Input.GetKey(KeyCode.A)) || (Input.GetKey(KeyCode.LeftArrow)))
         {
-            transform.Translate(Vector3.left * Time.deltaTime * this.speed);
+            rb.AddForce(-transform.right * this.speed);
             anim.SetInteger("Direction", -1);
         }
     }
@@ -135,7 +128,7 @@ public class PlayerMovement : MonoBehaviour
     {
         if ((Input.GetKey(KeyCode.D)) || (Input.GetKey(KeyCode.RightArrow)))
         {
-            transform.Translate(this.speed * Time.deltaTime * Vector3.right);
+            rb.AddForce(transform.right * this.speed);
             anim.SetInteger("Direction", 1);
         }
     }
@@ -200,6 +193,21 @@ public class PlayerMovement : MonoBehaviour
         };
 
         anim.SetBool("Moving", isMoving);
+        bool stickingGround = Legs.GetComponent<LegsBehaviour>().GetStickingGround();
+
+        if (stickingGround)
+        {
+            Debug.Log("Sticking ground");
+            this.canJump = true;
+            anim.SetTrigger("NotFlying");
+            anim.ResetTrigger("Flying");
+        } else
+        {
+            Debug.Log("Not sticking ground");
+            this.canJump = false;
+            anim.SetTrigger("Flying");
+            anim.ResetTrigger("NotFlying");
+        }
 
         Sprint();
         RotateCharacterUsingMouse();
@@ -211,5 +219,6 @@ public class PlayerMovement : MonoBehaviour
 
         CheckIfIsGoingLeftOrRight();
         CheckIfIsGoingForwardOrBackward();
+
     }
 }
