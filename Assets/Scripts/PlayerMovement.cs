@@ -1,47 +1,36 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Runtime.CompilerServices;
-using System.Xml;
-using System.Xml.Serialization;
-using Unity.VisualScripting;
-using UnityEditor.ShaderGraph.Internal;
-using UnityEditor.ShaderKeywordFilter;
-using UnityEditor.UI;
 using UnityEngine;
 
 public class PlayerMovement : MonoBehaviour
 {
-    // Start is called before the first frame update
     public float jumpForce = 10f;
     private bool sprinting = false;
 
     private bool canJump = false;
 
-    public Rigidbody rb;
-    public Animator anim;
+    [SerializeField] public Rigidbody rb;
+    [SerializeField] public Animator anim;
+    [SerializeField] public GameObject LegsCheckerObject;
 
-    public GameObject Legs;
-
-
-    // get collider
-
-    public Collider coll;
-    [SerializeField] private int speed = 1000;
+    [SerializeField] private int speed = 100;
 
     private float previousZ = 0;
     private float previousX = 0;
 
-    private float acceleration = 0;
-
+    private LegsBehaviour _legsBehaviour;
+    
+    private bool _stickingGround;
+    
 
     void Start()
     {
         rb = GetComponent<Rigidbody>();
-        coll = GetComponent<Collider>();    
         anim = GetComponent<Animator>();
         Cursor.lockState = CursorLockMode.Locked;
+        
+        _legsBehaviour = LegsCheckerObject.GetComponent<LegsBehaviour>();
     }
+
+
     private bool IsGoingForward()
     {
         return (Input.GetKey(KeyCode.W)) || (Input.GetKey(KeyCode.UpArrow));
@@ -67,7 +56,6 @@ public class PlayerMovement : MonoBehaviour
         if (Input.GetKey(KeyCode.LeftShift) && Input.GetKey(KeyCode.W))
         {
             this.sprinting = true;
-            Debug.Log("Sprinting");
         }
         else if (!Input.GetKey(KeyCode.LeftShift))
         {
@@ -83,7 +71,7 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
-    private void GoForwoard(bool isSprinting)
+    private void GoForward(bool isSprinting)
     {
         bool is_going_forward = IsGoingForward();
         bool is_going_backwards = isGoingBackwards();
@@ -103,7 +91,6 @@ public class PlayerMovement : MonoBehaviour
 
 
         }
-        Debug.Log(acceleration);
     }
 
     private void GoBackwards()
@@ -155,7 +142,7 @@ public class PlayerMovement : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.Space))
         {
-            if (this.canJump)
+            if (!_stickingGround)
             {
                 rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
             }
@@ -178,40 +165,40 @@ public class PlayerMovement : MonoBehaviour
 
 
 
-    private void FixedUpdate()
+    private void Update()
     {
         bool isSprinting = this.sprinting;
-        float current_x = transform.position.x;
-        float current_z = transform.position.z;
+        float currentX = transform.position.x;
+        float currentZ = transform.position.z;
 
-        bool isMoving = current_z != this.previousZ || current_x != this.previousX;
+        bool isMoving = currentZ != this.previousZ || currentX != this.previousX;
 
         if (isMoving)
         {
-            this.previousZ = current_z;
-            this.previousX = current_x;
+            this.previousZ = currentZ;
+            this.previousX = currentX;
         };
 
         anim.SetBool("Moving", isMoving);
-        bool stickingGround = Legs.GetComponent<LegsBehaviour>().GetStickingGround();
-
-        if (stickingGround)
+        
+        this._stickingGround = _legsBehaviour.StickingGround;
+        
+        if (_stickingGround)
         {
-            Debug.Log("Sticking ground");
             this.canJump = true;
             anim.SetTrigger("NotFlying");
-            anim.ResetTrigger("Flying");
+            // anim.ResetTrigger("Flying");
         } else
         {
             Debug.Log("Not sticking ground");
             this.canJump = false;
-            anim.SetTrigger("Flying");
+            // anim.SetTrigger("Flying");
             anim.ResetTrigger("NotFlying");
         }
 
         Sprint();
         RotateCharacterUsingMouse();
-        GoForwoard(isSprinting);
+        GoForward(isSprinting);
         GoBackwards();
         GoLeft();
         GoRight();

@@ -6,28 +6,37 @@ using UnityEngine;
 public class LegsBehaviour : MonoBehaviour
 {
 
-    private bool stickingGround = false;
+    public bool StickingGround { get; private set; }
+    
+    [SerializeField] private GameObject leftLeg;
+    [SerializeField] private GameObject rightLeg;
+    
+    private LeftLegBehaviour _leftLegScript;
+    private RightLegBehaviour _rightLegScript;
 
-    public Collider Collider;
-
-    public bool GetStickingGround()
+    void Start()
     {
-        return this.stickingGround;
+        _leftLegScript = leftLeg.GetComponent<LeftLegBehaviour>();
+        _rightLegScript = rightLeg.GetComponent<RightLegBehaviour>();
     }
-
-    private void OnCollisionEnter(Collision collision)
+    
+    void Update()
     {
-        if (collision.gameObject.CompareTag("Ground"))
+        this.StickingGround = _leftLegScript.StickingGround || _rightLegScript.StickingGround;
+        
+        Debug.Log("StickingGround: " + StickingGround);
+        
+        Debug.Log("Left Leg sticking " + _leftLegScript.StickingGround);
+        Debug.Log("Right Leg sticking " + _rightLegScript.StickingGround);
+
+        if (StickingGround)
         {
-            this.stickingGround = true;
+            Debug.Log("Siema");
+        }
+        else
+        {
+            Debug.Log("Nie śiema");
         }
     }
 
-    private void OnCollisionExit(Collision collision)
-    {
-        if (collision.gameObject.CompareTag("Ground"))
-        {
-            this.stickingGround = false;
-        }
-    }
 }
