@@ -3,31 +3,28 @@ using UnityEngine;
 public class PlayerMovement : MonoBehaviour
 {
     public float jumpForce = 10f;
-    private bool sprinting = false;
+    private bool _sprinting;
+    
+    [SerializeField] public new Rigidbody rigidbody;
+    [SerializeField] public Animator animator;
+    [SerializeField] public GameObject legsCheckerObject;
 
-    private bool canJump = false;
+    [SerializeField] public float speed = 50;
 
-    [SerializeField] public Rigidbody rb;
-    [SerializeField] public Animator anim;
-    [SerializeField] public GameObject LegsCheckerObject;
-
-    [SerializeField] private int speed = 100;
-
-    private float previousZ = 0;
-    private float previousX = 0;
+    private float _previousZ;
+    private float _previousX;
 
     private LegsBehaviour _legsBehaviour;
-    
     private bool _stickingGround;
     
 
     void Start()
     {
-        rb = GetComponent<Rigidbody>();
-        anim = GetComponent<Animator>();
+        rigidbody = GetComponent<Rigidbody>();
+        animator = GetComponent<Animator>();
         Cursor.lockState = CursorLockMode.Locked;
         
-        _legsBehaviour = LegsCheckerObject.GetComponent<LegsBehaviour>();
+        _legsBehaviour = legsCheckerObject.GetComponent<LegsBehaviour>();
     }
 
 
@@ -36,17 +33,17 @@ public class PlayerMovement : MonoBehaviour
         return (Input.GetKey(KeyCode.W)) || (Input.GetKey(KeyCode.UpArrow));
     }
 
-    private bool isGoingBackwards()
+    private bool IsGoingBackwards()
     {
         return (Input.GetKey(KeyCode.S)) || (Input.GetKey(KeyCode.DownArrow));
     }
 
-    private bool isGoingLeft()
+    private bool IsGoingLeft()
     {
         return (Input.GetKey(KeyCode.A)) || (Input.GetKey(KeyCode.LeftArrow));
     }
 
-    private bool isGoingRight()
+    private bool IsGoingRight()
     {
            return (Input.GetKey(KeyCode.D)) || (Input.GetKey(KeyCode.RightArrow));
     }
@@ -55,39 +52,30 @@ public class PlayerMovement : MonoBehaviour
     {
         if (Input.GetKey(KeyCode.LeftShift) && Input.GetKey(KeyCode.W))
         {
-            this.sprinting = true;
+            this._sprinting = true;
         }
         else if (!Input.GetKey(KeyCode.LeftShift))
         {
-            this.sprinting = false;
-        }
-    }
-
-    private void RotateModel()
-    {
-        if (Input.GetKey(KeyCode.A))
-        {
-            transform.Rotate(0, -1, 0);
+            this._sprinting = false;
         }
     }
 
     private void GoForward(bool isSprinting)
     {
-        bool is_going_forward = IsGoingForward();
-        bool is_going_backwards = isGoingBackwards();
+        bool isGoingForward = IsGoingForward();
 
-        if (is_going_forward)
+        if (isGoingForward)
         {
             if (!isSprinting)
             {
-                rb.AddForce(transform.forward * this.speed);
+                rigidbody.AddForce(transform.forward * this.speed);
             }
             else
             {
-                float speed = this.speed * 1.5f;
-                rb.AddForce(transform.forward * speed);
+                float sprintSpeed = this.speed * 1.5f;
+                rigidbody.AddForce(transform.forward * sprintSpeed);
             }
-            anim.SetFloat("SpeedOfWalking", this.sprinting ? 2 : 1);
+            animator.SetFloat("SpeedOfWalking", this._sprinting ? 2 : 1);
 
 
         }
@@ -97,8 +85,8 @@ public class PlayerMovement : MonoBehaviour
     {
         if ((Input.GetKey(KeyCode.S)) || (Input.GetKey(KeyCode.DownArrow)))
         {
-            rb.AddForce(-transform.forward * this.speed);
-            anim.SetFloat("SpeedOfWalking", -1);
+            rigidbody.AddForce(-transform.forward * this.speed);
+            animator.SetFloat("SpeedOfWalking", -1);
         }
     }
 
@@ -106,8 +94,8 @@ public class PlayerMovement : MonoBehaviour
     {
         if ((Input.GetKey(KeyCode.A)) || (Input.GetKey(KeyCode.LeftArrow)))
         {
-            rb.AddForce(-transform.right * this.speed);
-            anim.SetInteger("Direction", -1);
+            rigidbody.AddForce(-transform.right * this.speed);
+            animator.SetInteger("Direction", -1);
         }
     }
 
@@ -115,27 +103,27 @@ public class PlayerMovement : MonoBehaviour
     {
         if ((Input.GetKey(KeyCode.D)) || (Input.GetKey(KeyCode.RightArrow)))
         {
-            rb.AddForce(transform.right * this.speed);
-            anim.SetInteger("Direction", 1);
+            rigidbody.AddForce(transform.right * this.speed);
+            animator.SetInteger("Direction", 1);
         }
     }
 
     void CheckIfIsGoingLeftOrRight()
     {
-        if ((!isGoingLeft() && !isGoingRight()) || (isGoingLeft() && isGoingRight()))
+        if ((!IsGoingLeft() && !IsGoingRight()) || (IsGoingLeft() && IsGoingRight()))
         {
-            anim.SetInteger("Direction", 0);
+            animator.SetInteger("Direction", 0);
         }
     }
 
     void CheckIfIsGoingForwardOrBackward()
     {
-        bool is_going_backward = isGoingBackwards();
-        bool is_going_forward = IsGoingForward();
+        bool isGoingBackward = IsGoingBackwards();
+        bool isGoingForward = IsGoingForward();
 
-        if ((!is_going_backward && !is_going_forward) || (is_going_backward && is_going_forward))
+        if ((!isGoingBackward && !isGoingForward) || (isGoingBackward && isGoingForward))
         {
-            anim.SetFloat("SpeedOfWalking", 0);
+            animator.SetFloat("SpeedOfWalking", 0);
         }
     }
     private void Jump()
@@ -144,14 +132,13 @@ public class PlayerMovement : MonoBehaviour
         {
             if (!_stickingGround)
             {
-                rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
+                rigidbody.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
             }
         }
     }
 
     void RotateCharacterUsingMouse()
     {
-        // if right mouse button is pressed, rotate character
         if (Input.GetMouseButton(1))
         {
             return;
@@ -167,33 +154,31 @@ public class PlayerMovement : MonoBehaviour
 
     private void Update()
     {
-        bool isSprinting = this.sprinting;
+        bool isSprinting = this._sprinting;
         float currentX = transform.position.x;
         float currentZ = transform.position.z;
 
-        bool isMoving = currentZ != this.previousZ || currentX != this.previousX;
+        /*bool isMoving = currentZ != _previousZ || currentX != _previousX;
 
         if (isMoving)
         {
-            this.previousZ = currentZ;
-            this.previousX = currentX;
+            this._previousZ = currentZ;
+            this._previousX = currentX;
         };
 
-        anim.SetBool("Moving", isMoving);
+        animator.SetBool("Moving", isMoving);*/
         
         this._stickingGround = _legsBehaviour.StickingGround;
         
         if (_stickingGround)
         {
-            this.canJump = true;
-            anim.SetTrigger("NotFlying");
-            // anim.ResetTrigger("Flying");
+            animator.SetTrigger("NotFlying");
+            // animator.ResetTrigger("Flying");
         } else
         {
             Debug.Log("Not sticking ground");
-            this.canJump = false;
-            // anim.SetTrigger("Flying");
-            anim.ResetTrigger("NotFlying");
+            // animator.SetTrigger("Flying");
+            animator.ResetTrigger("NotFlying");
         }
 
         Sprint();
